@@ -1,30 +1,49 @@
 ---
 name: grilling
-description: Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.
+description: Grill the user about a plan, decision, or idea, one question card at a time, ending in a written decision record. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrase.
 ---
 
-Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
+Cross-examine the user until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
 
-Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round: number each question and give your recommended answer. Then wait for the user's answers before the next round.
+The **frontier** is every decision whose prerequisites are already settled: the questions you can ask _now_ without guessing at answers you haven't heard yet.
 
-Format a round like so:
+## Ask one question per turn
 
-```
-❓ **Q1** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+Pick the frontier question the most other decisions hang off, and ask only that one. Each settled answer reshapes the tree: recompute the frontier, then pick again.
 
-➡️ <your recommended answer>
+Ask it as a **card**: one `AskUserQuestion` call holding one question.
 
----
+- `header`: the decision's name in a word or two.
+- `question`: the decision, with the context needed to answer it cold.
+- `options`: 2–4 real alternatives, your recommended answer first with "(Recommended)" on its label, each `description` stating the trade-off that option buys.
 
-❓ **Q2** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+Above the card, write one line: the question number, how many questions sit on the frontier, and why you recommend what you recommend.
 
-➡️ <your recommended answer>
-```
+Where `AskUserQuestion` is unavailable, ask the same single question in text: `❓ **Q<n>** - **<title>**: <body>` followed by `➡️ <recommended answer>`.
 
-Word each question so "yes" accepts your recommended answer.
+## Cross-examine every answer
 
-Each round the user answers reshapes the tree: settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
+An answer settles a decision only once it survives cross-examination. Before moving on, test it:
 
-Finding _facts_ is your job, never the user's. When a frontier question needs a fact from the environment (filesystem, tools, etc.), dispatch a sub-agent with a fresh context window to find it; don't ask the user for anything you could look up yourself. Don't block on it: a running exploration is an unsettled prerequisite, so only the questions downstream of it wait for the sub-agent to report; ask the rest of the frontier now. The _decisions_ are the user's: put each to them and wait.
+- **Vague** ("it depends", "something simple", "we'll see"): ask for the concrete case, the number, or the example that pins it down.
+- **Contradicts a settled decision**: quote both, and make the user pick which one stands.
+- **Rests on an unstated assumption**: name the assumption and ask whether it holds.
+- **Picked your recommendation without a reason, on a decision that is costly to reverse**: ask what would make it the wrong choice.
 
-The session is done when the frontier is empty: every branch of the design tree visited, nothing left silently assumed. Do not act on it until the user confirms you have reached a shared understanding.
+Follow up with another card, or in plain text when the follow-up needs a free-form answer. State disagreement plainly, with the failure you expect, then let the user decide: the _decisions_ are theirs.
+
+## Find facts yourself
+
+Finding _facts_ is your job. When a frontier question needs a fact from the environment (filesystem, tools, docs), dispatch a sub-agent with a fresh context window to find it, and keep asking the questions that don't depend on it: a running exploration is an unsettled prerequisite only for the questions downstream of it.
+
+## Finish with a decision record
+
+The interview is done when the frontier is empty: every branch of the design tree visited, every assumption spoken aloud.
+
+Then write the **decision record** to `grill-<topic>.md` in the working directory:
+
+- **Decisions**: each settled decision, the chosen answer, and the user's reason in their own terms.
+- **Rejected**: the alternatives turned down, and why.
+- **Open risks**: assumptions the user accepted knowingly, and anything you still disagree with.
+
+Show the user the file and ask whether it is the shared understanding. Act on the plan only after they confirm it.
